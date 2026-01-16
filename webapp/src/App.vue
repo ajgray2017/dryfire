@@ -25,22 +25,21 @@
     </div>
 
     <div class="status">
-      <p><strong>Status:</strong> {{ running ? "Running" : "Stopped" }}</p>
+      <p>
+        <strong>Status:</strong>
+        {{
+          running
+            ? "Running"
+            : enabledModes.length === 0
+            ? "Select A Mode"
+            : "Stopped"
+        }}
+      </p>
       <p><strong>Last call:</strong> {{ lastSpoken }}</p>
     </div>
 
-    <p v-if="!hasChoices" class="error-text">
-      Select at least one mode to start
-    </p>
-
     <div class="buttons">
-      <button
-        @click="start"
-        :disabled="running || !hasChoices"
-        :class="{ error: !hasChoices }"
-      >
-        Start
-      </button>
+      <button @click="start" :disabled="running">Start</button>
       <button @click="stop" :disabled="!running">Stop</button>
     </div>
   </div>
@@ -62,7 +61,7 @@ type Operator = "+" | "-" | "*" | "/";
 
 const MIN_WAIT = 2;
 const MAX_WAIT = 5;
-const RESET_TIME = 1.5;
+// const RESET_TIME = 1.5;
 
 const MODECHANCE = 10;
 
@@ -87,7 +86,7 @@ const lastSpoken = ref<string>("");
 const enabledModes = ref<Mode[]>([]);
 const minWait = ref(MIN_WAIT);
 const maxWait = ref(MAX_WAIT);
-const postWait = ref<number>(RESET_TIME);
+// const postWait = ref<number>(RESET_TIME);
 
 onUnmounted(() => {
   stop();
@@ -95,10 +94,6 @@ onUnmounted(() => {
 
 const activeModes = computed<Set<Mode>>(() => {
   return new Set(enabledModes.value);
-});
-
-const hasChoices = computed<boolean>(() => {
-  return buildChoices().length > 0;
 });
 
 const waitRange = computed<[number, number]>(() => {
@@ -116,7 +111,9 @@ watch(
 );
 
 function start(): void {
-  if (running.value) return;
+  if (running.value) {
+    return;
+  }
   running.value = true;
   loop();
 }
@@ -138,19 +135,24 @@ function speak(text: string): void {
 }
 
 function loop(): void {
-  if (!running.value) return;
+  if (!running.value) {
+    return;
+  }
 
   let selection: string;
-  const modes = activeModes.value;
 
-  if (modes.has("math") && rand(1, MODECHANCE) === 1) {
+  if (activeModes.value.has("math") && rand(1, MODECHANCE) === 1) {
     selection = generateMathPrompt();
-  } else if (modes.has("spicy (mozambique)") && rand(1, MODECHANCE) === 1) {
+  } else if (
+    activeModes.value.has("spicy (mozambique)") &&
+    rand(1, MODECHANCE) === 1
+  ) {
     selection = generateSpicyPrompt();
   } else {
     const choices = buildChoices();
 
     if (choices.length === 0) {
+      stop();
       return;
     }
 
