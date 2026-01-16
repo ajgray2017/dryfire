@@ -42,6 +42,23 @@
       <button @click="start" :disabled="running">Start</button>
       <button @click="stop" :disabled="!running">Stop</button>
     </div>
+
+    <div style="margin-top: 100px; text-align: start">
+      <ul>
+        <li>
+          Normal IPSC Target
+          <ul>
+            <li>Head box top third</li>
+            <li>Shapes on the middle third</li>
+            <li>4x3 grid with letters and numbers on the lower third</li>
+          </ul>
+        </li>
+        <li>Numbers: 1 -> 12</li>
+        <li>Letters: A -> L</li>
+        <li>Shapes: Square, Circle, Triangle</li>
+        <li>Math answers are between 1 -> 12</li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -53,7 +70,6 @@ type Mode =
   | "double_tap"
   | "letters"
   | "numbers"
-  | "math"
   | "spicy (mozambique)"
   | "simple_math"
   | "complex_math";
@@ -63,7 +79,7 @@ const MIN_WAIT = 2;
 const MAX_WAIT = 5;
 // const RESET_TIME = 1.5;
 
-const MODECHANCE = 10;
+// const MODECHANCE = 10;
 
 const LETTERS: string[] = Array.from({ length: 12 }, (_, i) =>
   String.fromCharCode(97 + i)
@@ -83,7 +99,7 @@ const ALL_MODES: Mode[] = [
 const running = ref<boolean>(false);
 const timerId = ref<number | null>(null);
 const lastSpoken = ref<string>("");
-const enabledModes = ref<Mode[]>([]);
+const enabledModes = ref<Mode[]>(["letters", "numbers", "spicy (mozambique)"]);
 const minWait = ref(MIN_WAIT);
 const maxWait = ref(MAX_WAIT);
 // const postWait = ref<number>(RESET_TIME);
@@ -139,25 +155,14 @@ function loop(): void {
     return;
   }
 
-  let selection: string;
+  const choices = buildChoices();
 
-  if (activeModes.value.has("math") && rand(1, MODECHANCE) === 1) {
-    selection = generateMathPrompt();
-  } else if (
-    activeModes.value.has("spicy (mozambique)") &&
-    rand(1, MODECHANCE) === 1
-  ) {
-    selection = generateSpicyPrompt();
-  } else {
-    const choices = buildChoices();
-
-    if (choices.length === 0) {
-      stop();
-      return;
-    }
-
-    selection = choices[rand(0, choices.length - 1)] ?? "a";
+  if (choices.length === 0) {
+    stop();
+    return;
   }
+
+  const selection = choices[rand(0, choices.length - 1)]?.handler() ?? "a";
 
   speak(selection);
 
@@ -252,7 +257,7 @@ function generateComboMath(): string {
 
     try {
       const result = evalOp(first, op2, c);
-      if (result >= 0 && result <= 12) {
+      if (result > 0 && result <= 12) {
         return `${a} ${speakOp(op1)} ${b} ${speakOp(op2)} ${c}`;
       }
     } catch {
@@ -261,52 +266,76 @@ function generateComboMath(): string {
   }
 }
 
-function generateMathPrompt(): string {
-  if (
-    activeModes.value.has("simple_math") &&
-    !activeModes.value.has("complex_math")
-  ) {
-    return generateSingleMath();
-  } else if (
-    activeModes.value.has("complex_math") &&
-    !activeModes.value.has("simple_math")
-  ) {
-    return generateComboMath();
-  }
-  return Math.random() < 0.5 ? generateSingleMath() : generateComboMath();
-}
-
 function generateSpicyPrompt(): string {
   const shapes = ["Square", "Triangle", "Circle"] as const;
   return `Spicy ${shapes[rand(0, shapes.length - 1)]}`;
 }
 
-function buildChoices(): string[] {
-  const choices: string[] = [];
+function buildChoices(): { handler: () => string }[] {
+  const choices: { handler: () => string }[] = [];
+
+  if (activeModes.value.has("spicy (mozambique)")) {
+    choices.push({ handler: () => generateSpicyPrompt() });
+  }
+
+  if (activeModes.value.has("simple_math")) {
+    choices.push({ handler: () => generateSingleMath() });
+  }
+
+  if (activeModes.value.has("complex_math")) {
+    choices.push({ handler: () => generateComboMath() });
+  }
 
   if (activeModes.value.has("letters")) {
-    choices.push(...LETTERS);
+    choices.push(
+      ...LETTERS.map((l) => {
+        return { handler: () => l };
+      })
+    );
+  }
+
+  if (activeModes.value.has("letters")) {
+    choices.push(
+      ...LETTERS.map((l) => {
+        return { handler: () => l };
+      })
+    );
   }
 
   if (activeModes.value.has("numbers")) {
-    choices.push(...NUMBERS);
+    choices.push(
+      ...NUMBERS.map((n) => {
+        return { handler: () => n };
+      })
+    );
   }
 
   if (activeModes.value.has("triple_tap")) {
-    choices.push(
+    const triple = [
       "Triple Square",
       "Triple Triangle",
       "Triple Circle",
-      "Triple Head"
+      "Triple Head",
+    ];
+    choices.push(
+      ...triple.map((t) => {
+        return { handler: () => t };
+      })
     );
   }
 
   if (activeModes.value.has("double_tap")) {
-    choices.push(
+    const double = [
       "Double Square",
       "Double Triangle",
       "Double Circle",
-      "Double Head"
+      "Double Head",
+    ];
+
+    choices.push(
+      ...double.map((d) => {
+        return { handler: () => d };
+      })
     );
   }
 
