@@ -1,6 +1,6 @@
 <template>
   <div class="trainer">
-    <h2>Dry Fire Trainer</h2>
+    <h2>Reaction Time Drills</h2>
 
     <div class="controls">
       <label v-for="mode in ALL_MODES" :key="mode">
@@ -29,8 +29,18 @@
       <p><strong>Last call:</strong> {{ lastSpoken }}</p>
     </div>
 
+    <p v-if="!hasChoices" class="error-text">
+      Select at least one mode to start
+    </p>
+
     <div class="buttons">
-      <button @click="start" :disabled="running">Start</button>
+      <button
+        @click="start"
+        :disabled="running || !hasChoices"
+        :class="{ error: !hasChoices }"
+      >
+        Start
+      </button>
       <button @click="stop" :disabled="!running">Stop</button>
     </div>
   </div>
@@ -42,6 +52,8 @@ import { ref, computed, onUnmounted, watch } from "vue";
 type Mode =
   | "triple_tap"
   | "double_tap"
+  | "letters"
+  | "numbers"
   | "math"
   | "spicy (mozambique)"
   | "simple_math"
@@ -50,6 +62,7 @@ type Operator = "+" | "-" | "*" | "/";
 
 const MIN_WAIT = 2;
 const MAX_WAIT = 5;
+const RESET_TIME = 1.5;
 
 const MODECHANCE = 10;
 
@@ -59,6 +72,8 @@ const LETTERS: string[] = Array.from({ length: 12 }, (_, i) =>
 const NUMBERS: string[] = Array.from({ length: 12 }, (_, i) => String(i + 1));
 
 const ALL_MODES: Mode[] = [
+  "letters",
+  "numbers",
   "triple_tap",
   "double_tap",
   "simple_math",
@@ -72,6 +87,7 @@ const lastSpoken = ref<string>("");
 const enabledModes = ref<Mode[]>([]);
 const minWait = ref(MIN_WAIT);
 const maxWait = ref(MAX_WAIT);
+const postWait = ref<number>(RESET_TIME);
 
 onUnmounted(() => {
   stop();
@@ -79,6 +95,10 @@ onUnmounted(() => {
 
 const activeModes = computed<Set<Mode>>(() => {
   return new Set(enabledModes.value);
+});
+
+const hasChoices = computed<boolean>(() => {
+  return buildChoices().length > 0;
 });
 
 const waitRange = computed<[number, number]>(() => {
@@ -129,7 +149,12 @@ function loop(): void {
     selection = generateSpicyPrompt();
   } else {
     const choices = buildChoices();
-    selection = choices[rand(0, choices.length - 1)];
+
+    if (choices.length === 0) {
+      return;
+    }
+
+    selection = choices[rand(0, choices.length - 1)] ?? "a";
   }
 
   speak(selection);
@@ -203,9 +228,16 @@ function generateComboMath(): string {
   const ops: Operator[] = ["+", "-", "*", "/"];
 
   while (true) {
-    const a = rand(1, 12);
     const op1 = ops[rand(0, ops.length - 1)];
+    const op2 = ops[rand(0, ops.length - 1)];
+
+    const a = rand(1, 12);
     const b = rand(1, 12);
+    const c = rand(1, 12);
+
+    if (!op1 || !op2) {
+      continue;
+    }
 
     let first: number;
     try {
@@ -215,9 +247,6 @@ function generateComboMath(): string {
     }
 
     if (first < 0 || first > 12) continue;
-
-    const op2 = ops[rand(0, ops.length - 1)];
-    const c = rand(1, 12);
 
     try {
       const result = evalOp(first, op2, c);
@@ -251,7 +280,15 @@ function generateSpicyPrompt(): string {
 }
 
 function buildChoices(): string[] {
-  const choices: string[] = [...LETTERS, ...NUMBERS];
+  const choices: string[] = [];
+
+  if (activeModes.value.has("letters")) {
+    choices.push(...LETTERS);
+  }
+
+  if (activeModes.value.has("numbers")) {
+    choices.push(...NUMBERS);
+  }
 
   if (activeModes.value.has("triple_tap")) {
     choices.push(
@@ -329,5 +366,21 @@ function rand(min: number, max: number): number {
   border-radius: 8px;
   border: 1px solid #ccc;
   width: 80px;
+}
+
+button.error {
+  background: #dc2626;
+  color: white;
+  cursor: not-allowed;
+}
+
+button.error:hover {
+  background: #dc2626;
+}
+
+.error-text {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #dc2626;
 }
 </style>
