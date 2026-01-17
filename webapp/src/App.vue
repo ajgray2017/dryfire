@@ -46,7 +46,7 @@
     <div style="margin-top: 100px; text-align: start">
       <ul>
         <li>
-          Normal IPSC Target
+          For 1 Normal IPSC Target Setup
           <ul>
             <li>Head box top third</li>
             <li>Shapes on the middle third</li>
@@ -57,6 +57,7 @@
         <li>Letters: A -> L</li>
         <li>Shapes: Square, Circle, Triangle</li>
         <li>Math answers are between 1 -> 12</li>
+        <li>1R1: Picks between selected modes, or number R number</li>
       </ul>
     </div>
   </div>
@@ -72,10 +73,11 @@ type Mode =
   | "numbers"
   | "spicy (mozambique)"
   | "simple_math"
-  | "complex_math";
+  | "complex_math"
+  | "reload (1R1)";
 type Operator = "+" | "-" | "*" | "/";
 
-const MIN_WAIT = 2;
+const MIN_WAIT = 2.5;
 const MAX_WAIT = 5;
 // const RESET_TIME = 1.5;
 
@@ -94,6 +96,7 @@ const ALL_MODES: Mode[] = [
   "simple_math",
   "complex_math",
   "spicy (mozambique)",
+  "reload (1R1)",
 ];
 
 const running = ref<boolean>(false);
@@ -287,27 +290,19 @@ function buildChoices(): { handler: () => string }[] {
   }
 
   if (activeModes.value.has("letters")) {
-    choices.push(
-      ...LETTERS.map((l) => {
-        return { handler: () => l };
-      })
-    );
-  }
-
-  if (activeModes.value.has("letters")) {
-    choices.push(
-      ...LETTERS.map((l) => {
-        return { handler: () => l };
-      })
-    );
+    choices.push({
+      handler: () => {
+        return LETTERS[rand(0, LETTERS.length - 1)] ?? "a";
+      },
+    });
   }
 
   if (activeModes.value.has("numbers")) {
-    choices.push(
-      ...NUMBERS.map((n) => {
-        return { handler: () => n };
-      })
-    );
+    choices.push({
+      handler: () => {
+        return NUMBERS[rand(0, NUMBERS.length - 1)] ?? "1";
+      },
+    });
   }
 
   if (activeModes.value.has("triple_tap")) {
@@ -317,11 +312,12 @@ function buildChoices(): { handler: () => string }[] {
       "Triple Circle",
       "Triple Head",
     ];
-    choices.push(
-      ...triple.map((t) => {
-        return { handler: () => t };
-      })
-    );
+
+    choices.push({
+      handler: () => {
+        return triple[rand(0, triple.length - 1)] ?? "Triple Square";
+      },
+    });
   }
 
   if (activeModes.value.has("double_tap")) {
@@ -332,11 +328,30 @@ function buildChoices(): { handler: () => string }[] {
       "Double Head",
     ];
 
-    choices.push(
-      ...double.map((d) => {
-        return { handler: () => d };
-      })
-    );
+    choices.push({
+      handler: () => {
+        return double[rand(0, double.length - 1)] ?? "Double Square";
+      },
+    });
+  }
+
+  if (activeModes.value.has("reload (1R1)")) {
+    let selection1;
+    let selection2;
+
+    if (choices.length === 0) {
+      selection1 = NUMBERS[rand(0, NUMBERS.length - 1)] ?? "1";
+      selection2 = NUMBERS[rand(0, NUMBERS.length - 1)] ?? "1";
+    } else {
+      selection1 = choices[rand(0, choices.length - 1)]?.handler() ?? "a";
+      selection2 = choices[rand(0, choices.length - 1)]?.handler() ?? "a";
+    }
+
+    choices.push({
+      handler: () => {
+        return `${selection1} reload ${selection2}`;
+      },
+    });
   }
 
   return choices;
