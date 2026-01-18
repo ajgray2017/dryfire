@@ -43,6 +43,10 @@
       <button @click="stop" :disabled="!running">Stop</button>
     </div>
 
+    <div style="margin-top: 25px">
+      <button @click="once" :disabled="running">Just Once</button>
+    </div>
+
     <div>
       <div
         style="
@@ -142,6 +146,13 @@ watch(
   },
 );
 
+function once(): void {
+  stop();
+
+  running.value = true;
+  loop(false);
+}
+
 function start(): void {
   if (running.value) {
     return;
@@ -159,14 +170,18 @@ function stop(): void {
   }
 }
 
-function speak(text: string): void {
-  const utterance = new SpeechSynthesisUtterance(text);
-  speechSynthesis.cancel();
-  speechSynthesis.speak(utterance);
-  lastSpoken.value = text;
+function speak(text: string): Promise<void> {
+  return new Promise((resolve) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    //@ts-ignore
+    utterance.onend = resolve;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+    lastSpoken.value = text;
+  });
 }
 
-function loop(): void {
+async function loop(keepLooping = true): Promise<void> {
   if (!running.value) {
     return;
   }
@@ -180,20 +195,24 @@ function loop(): void {
 
   const selection = choices[rand(0, choices.length - 1)]?.handler() ?? "a";
 
-  speak(selection);
+  await speak(selection);
 
-  timerId.value = window.setTimeout(
-    () => {
-      loop();
-    },
-    (() => {
-      const [min, max] = waitRange.value;
-      return rand(min * 1000, max * 1000);
-    })(),
-  );
+  if (keepLooping) {
+    timerId.value = window.setTimeout(
+      () => {
+        loop();
+      },
+      (() => {
+        const [min, max] = waitRange.value;
+        return rand(min * 1000, max * 1000);
+      })(),
+    );
+  } else {
+    stop();
+  }
 }
 
-function speakOp(op: Operator): string {
+function mathOp(op: Operator): string {
   return {
     "+": "plus",
     "-": "minus",
@@ -274,7 +293,7 @@ function generateComboMath(): string {
     try {
       const result = evalOp(first, op2, c);
       if (result > 0 && result <= 12) {
-        return `${a} ${speakOp(op1)} ${b} ${speakOp(op2)} ${c}`;
+        return `${a} ${mathOp(op1)} ${b} ${mathOp(op2)} ${c}`;
       }
     } catch {
       continue;
