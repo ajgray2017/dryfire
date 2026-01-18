@@ -85,6 +85,7 @@ type Mode =
   | "spicy (mozambique)"
   | "simple_math"
   | "complex_math"
+  | "bill_drill"
   | "reload (1R1)";
 type Operator = "+" | "-" | "*" | "/";
 
@@ -107,6 +108,7 @@ const ALL_MODES: Mode[] = [
   "simple_math",
   "complex_math",
   "spicy (mozambique)",
+  "bill_drill",
   "reload (1R1)",
 ];
 
@@ -342,6 +344,14 @@ function buildChoices(): { handler: () => string }[] {
     choices.push({
       handler: () => {
         return double[rand(0, double.length - 1)] ?? "Double Square";
+      },
+    });
+  }
+
+  if (activeModes.value.has("bill_drill")) {
+    choices.push({
+      handler: () => {
+        return "bill drill";
       },
     });
   }
