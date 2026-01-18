@@ -31,8 +31,8 @@
           running
             ? "Running"
             : enabledModes.length === 0
-            ? "Select A Mode"
-            : "Stopped"
+              ? "Select A Mode"
+              : "Stopped"
         }}
       </p>
       <p><strong>Last call:</strong> {{ lastSpoken }}</p>
@@ -43,28 +43,39 @@
       <button @click="stop" :disabled="!running">Stop</button>
     </div>
 
-    <div style="margin-top: 100px; text-align: start">
-      <ul>
-        <li>
-          For 1 Normal IPSC Target Setup
-          <ul>
-            <li>Head box top third</li>
-            <li>Shapes on the middle third</li>
-            <li>4x3 grid with letters and numbers on the lower third</li>
-          </ul>
-        </li>
-        <li>Numbers: 1 -> 12</li>
-        <li>Letters: A -> L</li>
-        <li>Shapes: Square, Circle, Triangle</li>
-        <li>Math answers are between 1 -> 12</li>
-        <li>1R1: Picks between selected modes, or number R number</li>
-      </ul>
+    <div>
+      <div
+        style="
+          margin-top: 100px;
+          text-align: start;
+          justify-content: center;
+          display: flex;
+        "
+      >
+        <ul>
+          <li>
+            For 1 Normal IPSC Target Setup
+            <ul>
+              <li>Head box top third</li>
+              <li>Shapes on the middle third</li>
+              <li>4x3 grid with letters and numbers on the lower third</li>
+            </ul>
+          </li>
+          <li>Numbers: 1 -> 12</li>
+          <li>Letters: A -> L</li>
+          <li>Shapes: Square, Circle, Triangle</li>
+          <li>Math answers are between 1 -> 12</li>
+          <li>1R1: Picks between selected modes, or number R number</li>
+        </ul>
+      </div>
+      <img style="height: 450px" :src="Icon" alt="Icon" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted, watch } from "vue";
+import Icon from "./assets/target.svg";
 
 type Mode =
   | "triple_tap"
@@ -84,7 +95,7 @@ const MAX_WAIT = 5;
 // const MODECHANCE = 10;
 
 const LETTERS: string[] = Array.from({ length: 12 }, (_, i) =>
-  String.fromCharCode(97 + i)
+  String.fromCharCode(97 + i),
 );
 const NUMBERS: string[] = Array.from({ length: 12 }, (_, i) => String(i + 1));
 
@@ -126,7 +137,7 @@ watch(
   () => {
     stop();
     start();
-  }
+  },
 );
 
 function start(): void {
@@ -176,7 +187,7 @@ function loop(): void {
     (() => {
       const [min, max] = waitRange.value;
       return rand(min * 1000, max * 1000);
-    })()
+    })(),
   );
 }
 
