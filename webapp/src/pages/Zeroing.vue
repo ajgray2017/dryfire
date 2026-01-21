@@ -112,7 +112,7 @@ const axis = ref<"elevation" | "windage">("elevation");
 const offsetDirection = ref<OffsetDirection>("UP");
 
 watch(
-  () => axis,
+  () => axis.value,
   () => {
     if (axis.value === "elevation") {
       offsetDirection.value = "UP";
