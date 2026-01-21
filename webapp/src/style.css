@@ -77,3 +77,164 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.trainer {
+  margin: auto;
+  font-family: system-ui, sans-serif;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.buttons button {
+  margin-right: 8px;
+}
+
+.timing {
+  margin: 16px 0;
+  padding: 12px;
+  border-radius: 12px;
+  background: #f4f4f5;
+}
+
+.timing h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  color: #333;
+}
+
+.zeroing-inputs {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .zeroing-inputs {
+    display: block;
+    gap: 12px;
+  }
+}
+
+.zeroing-inputs label {
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  font-size: 0.8rem;
+  color: #555;
+  padding: 10px;
+}
+
+.zeroing-inputs input {
+  padding: 6px 8px;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  width: 80px;
+}
+
+.timing-inputs {
+  display: flex;
+  gap: 12px;
+}
+
+.timing-inputs label {
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.timing-inputs input {
+  padding: 6px 8px;
+  font-size: 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  width: 80px;
+}
+
+button.error {
+  background: #dc2626;
+  color: white;
+  cursor: not-allowed;
+}
+
+button.error:hover {
+  background: #dc2626;
+}
+
+.error-text {
+  margin-top: 8px;
+  font-size: 0.8rem;
+  color: #dc2626;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.toggle input {
+  display: none;
+}
+
+.track {
+  position: relative;
+  width: 100px;
+  height: 25px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  padding: 2px;
+  transition: background 0.2s ease;
+}
+
+.label {
+  position: absolute;
+  top: 50%;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  transform: translateY(-50%);
+  pointer-events: none;
+  user-select: none;
+}
+
+.label.left {
+  left: 6px;
+}
+
+.label.right {
+  right: 6px;
+}
+
+.thumb {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+  z-index: 1;
+}
+
+input:checked + .track {
+  background: #18119e;
+}
+
+input:checked + .track .thumb {
+  transform: translateX(20px);
+}
+
+input:checked + .track .label.left {
+  opacity: 0.2;
+}
+
+input:not(:checked) + .track .label.right {
+  opacity: 0.2;
+}
