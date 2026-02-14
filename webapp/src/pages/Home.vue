@@ -48,19 +48,19 @@
     </div>
 
     <div>
-      <div
-        style="
-          margin-top: 100px;
-          text-align: start;
-          justify-content: center;
-          display: flex;
-        "
-      >
+      <img
+        style="height: 90px; margin-top: 50px; margin-bottom: 10px"
+        :src="Arrow"
+        alt="Arrow"
+      />
+      <div style="text-align: start; justify-content: center; display: flex">
         <ul>
           <li>
             For 1 Normal IPSC Target Setup
             <ul>
-              <li>Head box top third</li>
+              <li>
+                Head box top third (Aim Small Miss Small dot in the center)
+              </li>
               <li>Shapes on the middle third</li>
               <li>4x3 grid with letters and numbers on the lower third</li>
             </ul>
@@ -69,17 +69,25 @@
           <li>Letters: A -> L</li>
           <li>Shapes: Square, Circle, Triangle</li>
           <li>Math answers are between 1 -> 12</li>
-          <li>1R1: Picks between selected modes, or number R number</li>
+          <li>
+            1R1: Picks between selected modes, or number R number. Also adds 4
+            seconds to the timer for resetting the spare mag
+          </li>
+          <li>
+            Tac Reload: Picks between selected modes, adds tac reload to the
+            end. Also adds 2 seconds to the timer for the reload
+          </li>
         </ul>
       </div>
-      <img style="height: 450px" :src="Icon" alt="Icon" />
+      <img style="height: 450px" :src="Target" alt="Target" />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onUnmounted, watch } from "vue";
-import Icon from "../assets/target.svg";
+import Target from "../assets/target.svg";
+import Arrow from "../assets/arrow.svg";
 
 type Mode =
   | "triple_tap"
@@ -90,11 +98,13 @@ type Mode =
   | "simple_math"
   | "complex_math"
   | "bill_drill"
-  | "reload (1R1)";
+  | "cadence"
+  | "reload (1R1)"
+  | "tac reload";
 type Operator = "+" | "-" | "*" | "/";
 
-const MIN_WAIT = 2.5;
-const MAX_WAIT = 5;
+const MIN_WAIT = 5;
+const MAX_WAIT = 7;
 // const RESET_TIME = 1.5;
 
 // const MODECHANCE = 10;
@@ -113,13 +123,20 @@ const ALL_MODES: Mode[] = [
   "complex_math",
   "spicy (mozambique)",
   "bill_drill",
+  "cadence",
   "reload (1R1)",
+  "tac reload",
 ];
 
 const running = ref<boolean>(false);
 const timerId = ref<number | null>(null);
 const lastSpoken = ref<string>("");
-const enabledModes = ref<Mode[]>(["letters", "numbers", "spicy (mozambique)"]);
+const enabledModes = ref<Mode[]>([
+  "spicy (mozambique)",
+  "bill_drill",
+  "cadence",
+  "double_tap",
+]);
 const minWait = ref(MIN_WAIT);
 const maxWait = ref(MAX_WAIT);
 // const postWait = ref<number>(RESET_TIME);
@@ -141,8 +158,10 @@ const waitRange = computed<[number, number]>(() => {
 watch(
   () => [minWait.value, maxWait.value],
   () => {
-    stop();
-    start();
+    if (running.value) {
+      stop();
+      start();
+    }
   },
 );
 
@@ -193,15 +212,19 @@ async function loop(keepLooping = true): Promise<void> {
     return;
   }
 
-  const selection = choices[rand(0, choices.length - 1)]?.handler() ?? "a";
+  const drill = choices[rand(0, choices.length - 1)];
+
+  const selection = drill?.handler() ?? "a";
 
   await speak(selection);
 
+  if (drill?.post) {
+    await drill?.post();
+  }
+
   if (keepLooping) {
-    timerId.value = window.setTimeout(
-      () => {
-        loop();
-      },
+    timerId.value = setTimeout(
+      () => loop(),
       (() => {
         const [min, max] = waitRange.value;
         return rand(min * 1000, max * 1000);
@@ -243,13 +266,13 @@ function generateSingleMath(): string {
   if (op === "+") {
     const a = rand(1, 11);
     const b = rand(1, 12 - a);
-    return `${a} plus ${b}`;
+    if (a + b <= 12 && a + b > 0) return `${a} plus ${b}`;
   }
 
   if (op === "-") {
     const a = rand(1, 12);
     const b = rand(0, a);
-    return `${a} minus ${b}`;
+    if (a - b <= 12 && a - b > 0) return `${a} minus ${b}`;
   }
 
   if (op === "*") {
@@ -301,16 +324,19 @@ function generateComboMath(): string {
   }
 }
 
-function generateSpicyPrompt(): string {
-  const shapes = ["Square", "Triangle", "Circle"] as const;
-  return `Spicy ${shapes[rand(0, shapes.length - 1)]}`;
-}
-
-function buildChoices(): { handler: () => string }[] {
-  const choices: { handler: () => string }[] = [];
+function buildChoices(): {
+  handler: () => string;
+  post?: () => Promise<void> | void;
+}[] {
+  const choices: { handler: () => string; post?: () => void }[] = [];
 
   if (activeModes.value.has("spicy (mozambique)")) {
-    choices.push({ handler: () => generateSpicyPrompt() });
+    choices.push({
+      handler: () => {
+        const shapes = ["Square", "Triangle", "Circle"] as const;
+        return `Spicy ${shapes[rand(0, shapes.length - 1)]}`;
+      },
+    });
   }
 
   if (activeModes.value.has("simple_math")) {
@@ -375,6 +401,21 @@ function buildChoices(): { handler: () => string }[] {
     });
   }
 
+  if (activeModes.value.has("cadence")) {
+    choices.push({
+      handler: () => {
+        const shapes = ["Square", "Triangle", "Circle"] as const;
+        return `Cadence: ${shapes[rand(0, shapes.length - 1)]} ${shapes[rand(0, shapes.length - 1)]} ${shapes[rand(0, shapes.length - 1)]}`;
+      },
+      post: () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(true);
+          }, 3000);
+        }),
+    });
+  }
+
   if (activeModes.value.has("reload (1R1)")) {
     let selection1;
     let selection2;
@@ -391,6 +432,34 @@ function buildChoices(): { handler: () => string }[] {
       handler: () => {
         return `${selection1} reload ${selection2}`;
       },
+      post: () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(true);
+          }, 4000);
+        }),
+    });
+  }
+
+  if (activeModes.value.has("tac reload")) {
+    let selection;
+
+    selection = choices[rand(0, choices.length - 1)]?.handler();
+
+    if (!selection || selection?.includes("reload")) {
+      selection = NUMBERS[rand(0, NUMBERS.length - 1)] ?? "1";
+    }
+
+    choices.push({
+      handler: () => {
+        return `${selection} tac reload`;
+      },
+      post: () =>
+        new Promise((resolve) => {
+          setTimeout(() => {
+            resolve(true);
+          }, 2000);
+        }),
     });
   }
 
@@ -402,5 +471,4 @@ function rand(min: number, max: number): number {
 }
 </script>
 
-<style scoped>
-</style>
+<style scoped></style>
